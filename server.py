@@ -1,0 +1,44 @@
+
+from flask import Flask, request, jsonify
+import requests
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+app = Flask(__name__)
+SERPAPI_KEY = os.getenv("SERPAPI_KEY")
+
+@app.route("/search_web", methods=["POST"])
+def search_web():
+    data = request.json
+    query = data.get("query")
+    num_results = data.get("num_results", 5)
+
+    if not query:
+        return jsonify({"error": "Missing 'query' parameter"}), 400
+
+    search_url = "https://serpapi.com/search"
+    params = {
+        "engine": "google",
+        "q": query,
+        "api_key": SERPAPI_KEY,
+        "num": num_results
+    }
+
+    try:
+        response = requests.get(search_url, params=params)
+        results = response.json().get("organic_results", [])[:num_results]
+        formatted = [
+            {
+                "title": item.get("title"),
+                "url": item.get("link"),
+                "snippet": item.get("snippet", "")
+            }
+            for item in results
+        ]
+        return jsonify(formatted)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
