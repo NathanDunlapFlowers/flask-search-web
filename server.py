@@ -18,16 +18,17 @@ def search_web():
             return jsonify({"error": "Missing 'query' parameter"}), 400
 
         query = data["query"]
-        num_results = int(data.get("num_results", 5))  # 🔥 Cast to int here
-
+        num_results = int(data.get("num_results", 5))
+        
         search_url = "https://serpapi.com/search"
         params = {
             "engine": "google",
             "q": query,
             "api_key": os.getenv("SERPAPI_KEY"),
-            "num": num_results
+            "num": 10,
+            "start": 0
         }
-
+        
         response = requests.get(search_url, params=params)
         results = response.json().get("organic_results", [])[:num_results]
 
