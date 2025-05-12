@@ -32,14 +32,21 @@ def search_web():
         response = requests.get(search_url, params=params)
         results = response.json().get("organic_results", [])[:num_results]
 
-        formatted = [
-            {
+        formatted = []
+        for item in results:
+            snippet = item.get("snippet", "")
+            
+            # Try to append rich info if available
+            if "rich_snippet" in item:
+                snippet += " " + str(item["rich_snippet"])
+            elif "about_this_result" in item:
+                snippet += " " + item["about_this_result"].get("source", "")
+        
+            formatted.append({
                 "title": item.get("title"),
                 "url": item.get("link"),
-                "snippet": item.get("snippet", "")
-            }
-            for item in results
-        ]
+                "snippet": snippet.strip()
+            })
 
         return jsonify(formatted)
 
