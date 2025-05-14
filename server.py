@@ -34,18 +34,23 @@ def search_web():
 
         formatted = []
         for item in results:
+            # Start with the default snippet if available
             snippet = item.get("snippet", "")
-            
-            # Try to append rich info if available
-            if "rich_snippet" in item:
-                snippet += " " + str(item["rich_snippet"])
-            elif "about_this_result" in item:
-                snippet += " " + item["about_this_result"].get("source", "")
+        
+            # Optionally append highlighted words
+            highlights = item.get("snippet_highlighted_words", [])
+            if highlights:
+                highlighted_text = " ".join(highlights)
+                snippet = f"{snippet} {highlighted_text}".strip()
+        
+            # Fallback in case snippet is missing but highlights exist
+            if not snippet and highlights:
+                snippet = " ".join(highlights)
         
             formatted.append({
                 "title": item.get("title"),
                 "url": item.get("link"),
-                "snippet": snippet.strip()
+                "snippet": snippet
             })
 
         return jsonify(formatted)
