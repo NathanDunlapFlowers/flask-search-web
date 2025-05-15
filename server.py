@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify
 import requests
 import os
@@ -12,7 +11,6 @@ load_dotenv()
 app = Flask(__name__)
 SERPAPI_KEY = os.getenv("SERPAPI_KEY")
 
-# Updated path for Render persistent disk
 DB_FILE = "/var/data/sources.db"
 
 def init_db():
@@ -68,12 +66,7 @@ def search_web():
             "start": 0
         }
 
-        print("Sending request to SerpAPI with params:", params)
-        sys.stdout.flush()
         response = requests.get(search_url, params=params)
-        print("SerpAPI response status:", response.status_code)
-        sys.stdout.flush()
-
         serp_data = response.json()
         raw_results = (
             serp_data.get("organic_results", []) +
@@ -81,8 +74,6 @@ def search_web():
             serp_data.get("top_stories", []) +
             serp_data.get("inline_videos", [])
         )
-        print(f"Total raw results: {len(raw_results)}")
-        sys.stdout.flush()
 
         seen = set()
         unique_results = []
@@ -114,9 +105,6 @@ def search_web():
                 "snippet": snippet
             })
 
-        print(f"Returning {len(formatted)} results")
-        sys.stdout.flush()
-
         return jsonify({ "results": formatted })
 
     except Exception as e:
@@ -125,6 +113,24 @@ def search_web():
         print("ERROR:", traceback_str)
         sys.stdout.flush()
         return jsonify({"error": str(e), "trace": traceback_str}), 500
+
+@app.route("/debug/list-db", methods=["GET"])
+def list_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT domain FROM used_sources")
+    rows = c.fetchall()
+    conn.close()
+    return jsonify({"domains": [r[0] for r in rows]})
+
+@app.route("/debug/clear-db", methods=["POST"])
+def clear_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("DELETE FROM used_sources")
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "cleared"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
