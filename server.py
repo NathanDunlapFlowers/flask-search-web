@@ -40,6 +40,14 @@ def store_url(url):
     conn.commit()
     conn.close()
 
+def is_ai_related(title, snippet):
+    keywords = [
+        "ai", "artificial intelligence", "machine learning", "deep learning",
+        "generative ai", "gen ai", "chatgpt", "llm", "openai", "neural network"
+    ]
+    text = f"{title} {snippet}".lower()
+    return any(k in text for k in keywords)
+
 def get_serp_results(query, tbs_filter=None):
     params = {
         "engine": "google",
@@ -90,27 +98,26 @@ def search_web():
             url = r.get("link") or r.get("url")
             if not url or not is_new_url(url):
                 continue
-            if url not in seen_urls:
-                seen_urls.add(url)
-                candidate_results.append((url, r))
+            if url in seen_urls:
+                continue
+
+            title = r.get("title", "")
+            snippet = r.get("snippet", "") or r.get("description", "")
+
+            if not is_ai_related(title, snippet):
+                continue
+
+            seen_urls.add(url)
+            candidate_results.append((url, title, snippet))
 
         random.shuffle(candidate_results)
         final = candidate_results[:num_results]
 
         formatted = []
-        for url, item in final:
+        for url, title, snippet in final:
             store_url(url)
-
-            snippet = item.get("snippet", "") or item.get("description", "")
-            highlights = item.get("snippet_highlighted_words", [])
-            if highlights:
-                highlighted_text = " ".join(highlights)
-                snippet = f"{snippet} {highlighted_text}".strip()
-            if not snippet and highlights:
-                snippet = " ".join(highlights)
-
             formatted.append({
-                "title": item.get("title") or item.get("source", {}).get("title", ""),
+                "title": title,
                 "url": url,
                 "snippet": snippet
             })
