@@ -82,7 +82,7 @@ def search_web():
         print(f"Returning {len(formatted)} results")
         sys.stdout.flush()
 
-        return jsonify(formatted)
+        return jsonify({ "results": formatted })
 
     except Exception as e:
         import traceback
