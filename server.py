@@ -76,21 +76,22 @@ def search_web():
         )
 
         seen = set()
-        unique_results = []
+        candidate_results = []
         for r in raw_results:
             url = r.get("link") or r.get("url")
             if url:
                 domain = urlparse(url).netloc
                 if domain and domain not in seen and is_new_domain(domain):
                     seen.add(domain)
-                    store_new_domain(domain)
-                    unique_results.append(r)
+                    candidate_results.append((domain, r))
 
-        random.shuffle(unique_results)
-        results = unique_results[:num_results]
+        random.shuffle(candidate_results)
+        final = candidate_results[:num_results]
 
         formatted = []
-        for item in results:
+        for domain, item in final:
+            store_new_domain(domain)  # Only store domain if it's actually used
+
             snippet = item.get("snippet", "") or item.get("description", "")
             highlights = item.get("snippet_highlighted_words", [])
             if highlights:
