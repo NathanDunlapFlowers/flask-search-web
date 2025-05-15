@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify
 import requests
 import os
@@ -23,35 +22,50 @@ def search_web():
         query = data["query"]
         num_results = int(data.get("num_results", 5))
         seed = int(data.get("randomizer", random.randint(0, 10000)))
-
         random.seed(seed)
 
         search_url = "https://serpapi.com/search"
         params = {
             "engine": "google",
             "q": query,
-            "api_key": os.getenv("SERPAPI_KEY"),
+            "api_key": SERPAPI_KEY,
             "num": 10,
             "start": 0
         }
 
         print("Sending request to SerpAPI with params:", params)
+        sys.stdout.flush()
         response = requests.get(search_url, params=params)
         print("SerpAPI response status:", response.status_code)
+        sys.stdout.flush()
 
         serp_data = response.json()
-        print("Raw SerpAPI response keys:", serp_data.keys())
-
         raw_results = serp_data.get("organic_results", [])
         print(f"Found {len(raw_results)} organic results")
+        sys.stdout.flush()
 
-        # Shuffle and select up to num_results
-        random.shuffle(raw_results)
-        results = raw_results[:num_results]
+        # Fallback: Try news_results if not enough organic results
+        if len(raw_results) < num_results:
+            news = serp_data.get("news_results", [])
+            print(f"Found {len(news)} news results")
+            sys.stdout.flush()
+            raw_results.extend(news)
+
+        # Remove duplicates based on URL
+        seen = set()
+        unique_results = []
+        for r in raw_results:
+            url = r.get("link") or r.get("url")
+            if url and url not in seen:
+                seen.add(url)
+                unique_results.append(r)
+
+        random.shuffle(unique_results)
+        results = unique_results[:num_results]
 
         formatted = []
         for item in results:
-            snippet = item.get("snippet", "")
+            snippet = item.get("snippet", "") or item.get("description", "")
             highlights = item.get("snippet_highlighted_words", [])
             if highlights:
                 highlighted_text = " ".join(highlights)
@@ -60,13 +74,13 @@ def search_web():
                 snippet = " ".join(highlights)
 
             formatted.append({
-                "title": item.get("title"),
-                "url": item.get("link"),
+                "title": item.get("title") or item.get("source", {}).get("title", ""),
+                "url": item.get("link") or item.get("url"),
                 "snippet": snippet
             })
 
-        if len(results) < num_results:
-            print(f"⚠️ Only {len(results)} results returned by SerpAPI (expected {num_results})")
+        print(f"Returning {len(formatted)} results")
+        sys.stdout.flush()
 
         return jsonify(formatted)
 
@@ -74,6 +88,7 @@ def search_web():
         import traceback
         traceback_str = traceback.format_exc()
         print("ERROR:", traceback_str)
+        sys.stdout.flush()
         return jsonify({"error": str(e), "trace": traceback_str}), 500
 
 if __name__ == "__main__":
