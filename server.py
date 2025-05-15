@@ -63,6 +63,14 @@ def get_serp_results(query, tbs_filter=None):
         data.get("inline_videos", [])
     )
 
+def looks_like_article(url):
+    parsed = urlparse(url)
+    path_parts = parsed.path.strip("/").split("/")
+    # Relaxed rule: allow 1+ levels, avoid generic category names
+    if len(path_parts) >= 1 and path_parts[0] not in ["", "news", "stories", "articles"]:
+        return True
+    return False
+
 init_db()
 
 @app.route("/search_web", methods=["POST"])
@@ -85,17 +93,25 @@ def search_web():
                 break
 
         seen_urls = set()
-        candidate_results = []
+        all_candidates = []
+        valid_candidates = []
+
         for r in all_raw_results:
             url = r.get("link") or r.get("url")
             if not url or not is_new_url(url):
                 continue
-            if url not in seen_urls:
-                seen_urls.add(url)
-                candidate_results.append((url, r))
+            if url in seen_urls:
+                continue
+            seen_urls.add(url)
+            all_candidates.append((url, r))
+            if looks_like_article(url):
+                valid_candidates.append((url, r))
 
-        random.shuffle(candidate_results)
-        final = candidate_results[:num_results]
+        # Use filtered set if it has enough, otherwise use everything
+        final_pool = valid_candidates if len(valid_candidates) >= num_results else all_candidates
+
+        random.shuffle(final_pool)
+        final = final_pool[:num_results]
 
         formatted = []
         for url, item in final:
