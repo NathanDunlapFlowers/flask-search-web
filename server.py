@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify
 import requests
 import os
@@ -20,9 +19,7 @@ def init_db():
     c.execute('''
         CREATE TABLE IF NOT EXISTS used_sources (
             id INTEGER PRIMARY KEY,
-            url TEXT UNIQUE,
-            domain TEXT,
-            used_on DATE
+            url TEXT UNIQUE
         )
     ''')
     conn.commit()
@@ -36,11 +33,10 @@ def is_new_url(url):
     conn.close()
     return not exists
 
-def store_url(url, domain):
+def store_url(url):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
-    c.execute("INSERT OR IGNORE INTO used_sources (url, domain, used_on) VALUES (?, ?, ?)", (url, domain, today_str))
+    c.execute("INSERT OR IGNORE INTO used_sources (url) VALUES (?)", (url,))
     conn.commit()
     conn.close()
 
@@ -88,23 +84,22 @@ def search_web():
             if len(all_raw_results) >= num_results:
                 break
 
-        seen_domains = set()
+        seen_urls = set()
         candidate_results = []
         for r in all_raw_results:
             url = r.get("link") or r.get("url")
             if not url or not is_new_url(url):
                 continue
-            domain = urlparse(url).netloc
-            if domain and domain not in seen_domains:
-                seen_domains.add(domain)
-                candidate_results.append((url, domain, r))
+            if url not in seen_urls:
+                seen_urls.add(url)
+                candidate_results.append((url, r))
 
         random.shuffle(candidate_results)
         final = candidate_results[:num_results]
 
         formatted = []
-        for url, domain, item in final:
-            store_url(url, domain)
+        for url, item in final:
+            store_url(url)
 
             snippet = item.get("snippet", "") or item.get("description", "")
             highlights = item.get("snippet_highlighted_words", [])
@@ -133,10 +128,10 @@ def search_web():
 def list_db():
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute("SELECT url, domain, used_on FROM used_sources ORDER BY used_on DESC")
+    c.execute("SELECT url FROM used_sources ORDER BY id DESC")
     rows = c.fetchall()
     conn.close()
-    return jsonify({"entries": [{"url": r[0], "domain": r[1], "used_on": r[2]} for r in rows]})
+    return jsonify({"entries": [r[0] for r in rows]})
 
 @app.route("/debug/clear-db", methods=["POST"])
 def clear_db():
