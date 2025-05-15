@@ -13,14 +13,17 @@ SERPAPI_KEY = os.getenv("SERPAPI_KEY")
 def search_web():
     try:
         data = request.json
+        print("Incoming data:", data)
+
+        if not data or "query" not in data:
+            return jsonify({"error": "Missing 'query' parameter"}), 400
+
         query = data["query"]
         num_results = int(data.get("num_results", 5))
         seed = int(data.get("randomizer", random.randint(0, 10000)))
 
-        # You can now use this `seed` to control ordering or behavior
         random.seed(seed)
 
-        # Call SerpAPI as before
         search_url = "https://serpapi.com/search"
         params = {
             "engine": "google",
@@ -30,12 +33,19 @@ def search_web():
             "start": 0
         }
 
+        print("Sending request to SerpAPI with params:", params)
         response = requests.get(search_url, params=params)
-        results = response.json().get("organic_results", [])
+        print("SerpAPI response status:", response.status_code)
 
-        # Randomly shuffle before slicing
-        random.shuffle(results)
-        results = results[:num_results]
+        serp_data = response.json()
+        print("Raw SerpAPI response keys:", serp_data.keys())
+
+        raw_results = serp_data.get("organic_results", [])
+        print(f"Found {len(raw_results)} organic results")
+
+        # Shuffle and select up to num_results
+        random.shuffle(raw_results)
+        results = raw_results[:num_results]
 
         formatted = []
         for item in results:
@@ -53,11 +63,16 @@ def search_web():
                 "snippet": snippet
             })
 
+        if len(results) < num_results:
+            print(f"⚠️ Only {len(results)} results returned by SerpAPI (expected {num_results})")
+
         return jsonify(formatted)
 
     except Exception as e:
-        print("ERROR:", str(e))
-        return jsonify({"error": str(e)}), 500
+        import traceback
+        traceback_str = traceback.format_exc()
+        print("ERROR:", traceback_str)
+        return jsonify({"error": str(e), "trace": traceback_str}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
