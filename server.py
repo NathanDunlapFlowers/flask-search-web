@@ -3,6 +3,7 @@ from flask import Flask, request, jsonify
 import requests
 import os
 import random
+import sys
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,6 +15,7 @@ def search_web():
     try:
         data = request.json
         print("Incoming data:", data)
+        sys.stdout.flush()
 
         if not data or "query" not in data:
             return jsonify({"error": "Missing 'query' parameter"}), 400
