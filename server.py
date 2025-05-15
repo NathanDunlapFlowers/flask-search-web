@@ -1,13 +1,48 @@
+
 from flask import Flask, request, jsonify
 import requests
 import os
 import random
 import sys
+import sqlite3
+from urllib.parse import urlparse
 from dotenv import load_dotenv
 
 load_dotenv()
 app = Flask(__name__)
 SERPAPI_KEY = os.getenv("SERPAPI_KEY")
+
+# Updated path for Render persistent disk
+DB_FILE = "/var/data/sources.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS used_sources (
+            id INTEGER PRIMARY KEY,
+            domain TEXT UNIQUE
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+def is_new_domain(domain):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT 1 FROM used_sources WHERE domain=?", (domain,))
+    exists = c.fetchone()
+    conn.close()
+    return not exists
+
+def store_new_domain(domain):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("INSERT OR IGNORE INTO used_sources (domain) VALUES (?)", (domain,))
+    conn.commit()
+    conn.close()
+
+init_db()
 
 @app.route("/search_web", methods=["POST"])
 def search_web():
@@ -29,7 +64,7 @@ def search_web():
             "engine": "google",
             "q": query,
             "api_key": SERPAPI_KEY,
-            "num": 10,
+            "num": 20,
             "start": 0
         }
 
@@ -40,25 +75,25 @@ def search_web():
         sys.stdout.flush()
 
         serp_data = response.json()
-        raw_results = serp_data.get("organic_results", [])
-        print(f"Found {len(raw_results)} organic results")
+        raw_results = (
+            serp_data.get("organic_results", []) +
+            serp_data.get("news_results", []) +
+            serp_data.get("top_stories", []) +
+            serp_data.get("inline_videos", [])
+        )
+        print(f"Total raw results: {len(raw_results)}")
         sys.stdout.flush()
 
-        # Fallback: Try news_results if not enough organic results
-        if len(raw_results) < num_results:
-            news = serp_data.get("news_results", [])
-            print(f"Found {len(news)} news results")
-            sys.stdout.flush()
-            raw_results.extend(news)
-
-        # Remove duplicates based on URL
         seen = set()
         unique_results = []
         for r in raw_results:
             url = r.get("link") or r.get("url")
-            if url and url not in seen:
-                seen.add(url)
-                unique_results.append(r)
+            if url:
+                domain = urlparse(url).netloc
+                if domain and domain not in seen and is_new_domain(domain):
+                    seen.add(domain)
+                    store_new_domain(domain)
+                    unique_results.append(r)
 
         random.shuffle(unique_results)
         results = unique_results[:num_results]
