@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 app = Flask(__name__)
 SERPAPI_KEY = os.getenv("SERPAPI_KEY")
+DEBUG_ADMIN_KEY = os.getenv("DEBUG_ADMIN_KEY")
 DB_FILE = "/var/data/sources.db"
 
 def init_db():
@@ -72,6 +73,13 @@ def get_serp_results(query, tbs_filter=None):
     )
 
 init_db()
+
+@app.before_request
+def protect_debug_routes():
+    if request.path.startswith("/debug"):
+        key = request.headers.get("X-Admin-Key")
+        if key != DEBUG_ADMIN_KEY:
+            return jsonify({"error": "unauthorized"}), 403
 
 @app.route("/search_web", methods=["POST"])
 def search_web():
