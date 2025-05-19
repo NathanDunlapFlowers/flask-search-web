@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: flask-ai-news
+    env: python
+    plan: starter
+    autoDeploy: false
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    envVars:
+      - key: SERPAPI_KEY
+        sync: false
+    disk:
+      name: data-disk
+      mountPath: /var/data
+      sizeGB: 1
