@@ -79,7 +79,7 @@ def protect_debug_routes():
     if request.path.startswith("/debug"):
         key = request.headers.get("X-Admin-Key")
         if key != DEBUG_ADMIN_KEY:
-            return jsonify({"error": "unauthorized"}), 403
+            return jsonify(Error: Unauthorized), 403
 
 @app.route("/search_web", methods=["POST"])
 def search_web():
