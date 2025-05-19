@@ -84,21 +84,6 @@ Just connect your repo to Render and it will auto-detect the `render.yaml`.
 
 ---
 
-## Project Structure
-
-```text
-.
-├── server.py            # Main Flask app
-├── requirements.txt     # Python dependencies
-├── .env.example         # Template for API key
-├── .gitignore           # Ignore compiled/env/db files
-├── render.yaml          # Render deployment configuration
-├── LICENSE              # MIT license
-└── README.md            # You're reading it
-```
-
----
-
 ## License
 
 This project is licensed under the MIT License. See the `LICENSE` file for details.
