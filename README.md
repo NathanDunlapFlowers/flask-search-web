@@ -11,6 +11,8 @@ This Flask app provides an API to retrieve AI-related web search results using S
 - Persists used URLs with a SQLite database on disk
 - Includes `/debug` endpoints to view and clear stored URLs
 
+---
+
 ## Endpoints
 
 ### `POST /search_web`
@@ -48,32 +50,55 @@ Clears the stored URL history.
 
 ## Setup
 
-### 1. Install dependencies
+### 1. Clone and install dependencies
 
 ```bash
+git clone https://github.com/yourusername/flask-ai-news.git
+cd flask-ai-news
 pip install -r requirements.txt
 ```
 
-### 2. Create `.env` file
+### 2. Create your `.env` file
 
-Copy the `.env.example` and add your [SerpAPI key](https://serpapi.com/):
+Copy the template:
 
 ```bash
 cp .env.example .env
 ```
 
-### 3. Run the server
+And add your [SerpAPI key](https://serpapi.com/).
 
-```bash
-python server.py
-```
+---
 
 ## Deployment
 
-Recommended for deployment on [Render](https://render.com/), with persistent disk mounted to `/var/data`.
+This app is designed for simple deployment using [Render](https://render.com/).
+
+A preconfigured `render.yaml` file is included, which sets up:
+- The Flask web service
+- A 1 GB persistent disk at `/var/data`
+- Environment variable for `SERPAPI_KEY`
+- `autoDeploy: false` (you control when to deploy)
+
+Just connect your repo to Render and it will auto-detect the `render.yaml`.
+
+---
+
+## Project Structure
+
+```text
+.
+├── server.py            # Main Flask app
+├── requirements.txt     # Python dependencies
+├── .env.example         # Template for API key
+├── .gitignore           # Ignore compiled/env/db files
+├── render.yaml          # Render deployment configuration
+├── LICENSE              # MIT license
+└── README.md            # You're reading it
+```
 
 ---
 
 ## License
 
-MIT
+This project is licensed under the MIT License. See the `LICENSE` file for details.
