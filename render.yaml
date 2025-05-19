@@ -9,6 +9,8 @@ services:
     envVars:
       - key: SERPAPI_KEY
         sync: false
+      - key: DEBUG_ADMIN_KEY
+        sync: false
     disk:
       name: data-disk
       mountPath: /var/data
