@@ -9,7 +9,7 @@ This Flask app provides an API to retrieve AI-related web search results using S
 - Deduplicates results based on URLs
 - Filters for articles relevant to AI (based on keyword match)
 - Persists used URLs with a SQLite database on disk
-- Includes `/debug` endpoints to view and clear stored URLs
+- Includes `/debug` endpoints to view and clear stored URLs, protected by an admin key
 
 ---
 
@@ -41,10 +41,10 @@ Fetches and returns AI-related articles.
 ```
 
 ### `GET /debug/list-db`
-Returns a list of all stored URLs.
+Returns a list of all stored URLs. Requires header `X-Admin-Key`.
 
 ### `POST /debug/clear-db`
-Clears the stored URL history.
+Clears the stored URL history. Requires header `X-Admin-Key`.
 
 ---
 
@@ -66,7 +66,30 @@ Copy the template:
 cp .env.example .env
 ```
 
-And add your [SerpAPI key](https://serpapi.com/).
+And add your [SerpAPI key](https://serpapi.com/) and your own admin key:
+
+```env
+SERPAPI_KEY=your-serpapi-key
+DEBUG_ADMIN_KEY=your-secret-admin-key
+```
+
+---
+
+## Admin Route Protection
+
+All `/debug/*` endpoints are protected by the `DEBUG_ADMIN_KEY`.  
+You must include this in the request header as:
+
+```bash
+-H "X-Admin-Key: your-secret-admin-key"
+```
+
+Example:
+
+```bash
+curl -X POST https://your-app.onrender.com/debug/clear-db \
+  -H "X-Admin-Key: your-secret-admin-key"
+```
 
 ---
 
@@ -77,10 +100,8 @@ This app is designed for simple deployment using [Render](https://render.com/).
 A preconfigured `render.yaml` file is included, which sets up:
 - The Flask web service
 - A 1 GB persistent disk at `/var/data`
-- Environment variable for `SERPAPI_KEY`
+- Environment variables: `SERPAPI_KEY` and `DEBUG_ADMIN_KEY`
 - `autoDeploy: false` (you control when to deploy)
-
-Just connect your repo to Render and it will auto-detect the `render.yaml`.
 
 ---
 
