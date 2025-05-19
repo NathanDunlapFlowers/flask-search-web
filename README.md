@@ -1,53 +1,79 @@
+# Flask AI News Scraper
 
-# Flask Web Search API with SerpAPI for OpenAI Assistant
-
-This Flask server handles a function call from OpenAI's Assistant and returns web search results using SerpAPI.
+This Flask app provides an API to retrieve AI-related web search results using SerpAPI and stores previously used URLs in a local SQLite database to avoid repetition. It supports filtering by time (day, week, month, year) and only keeps results that are AI-relevant based on title/snippet content.
 
 ## Features
-- Receives POST requests to `/search_web`
-- Uses SerpAPI to perform a Google search
-- Returns structured JSON with titles, links, and snippets
 
-## Setup Instructions
+- Retrieves fresh Google search results via SerpAPI
+- Prioritizes content from today, then this week, month, and year
+- Deduplicates results based on URLs
+- Filters for articles relevant to AI (based on keyword match)
+- Persists used URLs with a SQLite database on disk
+- Includes `/debug` endpoints to view and clear stored URLs
 
-1. Clone this repo and install dependencies:
-    ```
-    pip install -r requirements.txt
-    ```
+## Endpoints
 
-2. Create a `.env` file:
-    ```
-    cp .env.example .env
-    ```
+### `POST /search_web`
+Fetches and returns AI-related articles.
 
-3. Add your SerpAPI key to the `.env` file.
-
-4. Run the server:
-    ```
-    python server.py
-    ```
-
-5. (Optional) Expose your server with ngrok:
-    ```
-    ngrok http 5000
-    ```
-
-## Example Request Payload
+**Body:**
 ```json
 {
-  "query": "latest AI trends 2025",
-  "num_results": 3
+  "query": "AI trends May 2025",
+  "num_results": 5,
+  "randomizer": 1234
 }
 ```
 
-## Example Response
+**Returns:**
 ```json
-[
-  {
-    "title": "AI Trends 2025: What to Expect",
-    "url": "https://example.com/ai-trends-2025",
-    "snippet": "Discover the top AI advancements to watch in 2025..."
-  },
-  ...
-]
+{
+  "results": [
+    {
+      "title": "...",
+      "url": "...",
+      "snippet": "..."
+    }
+  ]
+}
 ```
+
+### `GET /debug/list-db`
+Returns a list of all stored URLs.
+
+### `POST /debug/clear-db`
+Clears the stored URL history.
+
+---
+
+## Setup
+
+### 1. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Create `.env` file
+
+Copy the `.env.example` and add your [SerpAPI key](https://serpapi.com/):
+
+```bash
+cp .env.example .env
+```
+
+### 3. Run the server
+
+```bash
+python server.py
+```
+
+## Deployment
+
+Recommended for deployment on [Render](https://render.com/), with persistent disk mounted to `/var/data`.
+
+---
+
+## License
+
+MIT
